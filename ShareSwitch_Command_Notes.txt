@@ -1,0 +1,63 @@
+1. Both Top
+
+out					in
+02 5b 08				02 5c 0e //Get current state
+02 5b 08				02 5c 0e //Get current state
+02 59 0c					 //Top lights blink
+02 5a 0c				02 5c 02 //Requires [02 59 0c]? Seems to switch tops top bottoms. Unknown Behavior.
+02 5b 0c				02 5c 02 //Get current state
+
+
+2. Both bottom
+
+02 5b 0c				02 5c 02 //Get current state
+02 55 0c				02 5c 0e //Swaps Inputs 
+02 5d 04					 //Unknown (Possibly Data protection)
+02 60 04				02 61 04 //Unknown (seems to always be the same) (Possibly Data protection)
+02 5d 08					 //Unknown (Possibly Data protection)
+02 60 08				02 61 08 //Unknown (seems to always bee the same) (Possibly Data protection)
+02 5b 08				02 5c 0e //Get current state
+
+
+
+Commands
+02 55 04*
+	Response 
+		Moved left light to opposite.
+
+02 55 08*
+	Response 
+		Moved right light to opposite.
+
+02 55 0c*
+	Response
+		Swaps inputs to opposite
+
+02 59 04
+	Response 
+		Causes the left top light to blink
+
+02 59 08
+	Response 
+		Causes the right top light to blink
+
+02 59 0c
+	Response 
+		Causes the top lights to blink
+
+02 5a 0c
+	Response
+		Swaps to bottom if top lights are blinking (Refer to [02 59 0c])
+
+02 5b 04 //Used when switch not synced
+02 5b 08 //Used when both bottom
+02 5b 0c //Used when both top
+	Response
+		-Gets the state of the switch-
+		02 5c 06 (left top, right bottom)
+		02 5c 0e (both top)
+		02 5c 0a (left bottom, right top)
+		02 5c 02 (both bottom)
+
+
+
