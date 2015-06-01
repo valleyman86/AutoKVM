@@ -23,8 +23,13 @@ namespace AutoKVM
         private static LowLevelKeyboardProc _proc = HookCallback;
         private static IntPtr _hookID = IntPtr.Zero;
 
+        private static System.Timers.Timer doublePressTimer;
+
         public static void Init()
         {
+            doublePressTimer = new System.Timers.Timer(300);
+            doublePressTimer.AutoReset = false;
+
             _hookID = SetHook(_proc);
         }
 
@@ -62,13 +67,26 @@ namespace AutoKVM
                     //    Application.Exit();
                     //    break;
                     case Keys.Scroll:
-                        DisplayDDC.ToggleDisplaySources(DisplayDDC.MonitorSource.dvi_1, DisplayDDC.MonitorSource.hdmi);
+                        HandleScrolllock();
                         break;
                     default:
                         break;
                 }
             }
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
+        }
+
+        private static void HandleScrolllock()
+        {
+            if (doublePressTimer.Enabled)
+            {
+                doublePressTimer.Stop();
+                DisplayDDC.ToggleDisplaySources(DisplayDDC.MonitorSource.dvi_1, DisplayDDC.MonitorSource.hdmi);
+            }
+            else
+            {
+                doublePressTimer.Start();
+            }
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]

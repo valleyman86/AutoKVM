@@ -27,12 +27,15 @@ namespace AutoKVM
             public string szPhysicalMonitorDescription;
         }
 
-        public enum MonitorSource: int
+        public enum MonitorSource : int
         {
-            dvi_1 = 3,
             vga = 1,
+            dvi_1 = 3,
+            div_2 = 4,
+            composite = 5,
+            component = 12,
+            displayPort = 15,
             hdmi = 17,
-            composite = 5
         };
 
         public delegate bool EnumMonitorsDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData);
@@ -47,11 +50,6 @@ namespace AutoKVM
 
         private static bool EnumMonitors(IntPtr hMonitor, IntPtr hdcMonitor, ref DisplayDDC.Rect lprcMonitor, IntPtr dwData, int sourceCode1, int sourceCode2)
         {
-            if (hMonitor.ToInt32() != 65537)
-            {
-                return true;
-            }
-
             int physicalMonitorCount = 0;
             DisplayDDC.GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitorCount);
 
