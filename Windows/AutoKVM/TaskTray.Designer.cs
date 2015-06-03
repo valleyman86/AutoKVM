@@ -50,19 +50,20 @@
             this.switchDisplaysToolStripMenuItem,
             this.exitToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(192, 70);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(153, 70);
             // 
             // switchDisplaysToolStripMenuItem
             // 
             this.switchDisplaysToolStripMenuItem.Name = "switchDisplaysToolStripMenuItem";
-            this.switchDisplaysToolStripMenuItem.Size = new System.Drawing.Size(191, 22);
-            this.switchDisplaysToolStripMenuItem.Text = "Toggle Display Source";
+            this.switchDisplaysToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.switchDisplaysToolStripMenuItem.Text = "Cycle Sources";
+            this.switchDisplaysToolStripMenuItem.ToolTipText = "[Double Scroll Lock]";
             this.switchDisplaysToolStripMenuItem.Click += new System.EventHandler(this.switchDisplaysToolStripMenuItem_Click);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(191, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
