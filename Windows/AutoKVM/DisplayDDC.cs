@@ -9,6 +9,14 @@ namespace AutoKVM
 {
     class DisplayDDC
     {
+        #region Members
+
+        internal struct MonitorSource
+        {
+            public int code;
+            public string name;
+        }
+
         #region Private members
 
         private const int PHYSICAL_MONITOR_DESCRIPTION_SIZE = 128;
@@ -32,12 +40,64 @@ namespace AutoKVM
 
         // Operates on result of CapabilitiesRequestAndCapabilitiesReply(). Extracts vcp code 60 values into capture group 1.
         private static readonly string vcp60ValuesPattern = @"vcp\((?:.*?\(.*?\))*[^\(\)]*?60 ?\((.*?)\)";
+        // Operates on result of CapabilitiesRequestAndCapabilitiesReply(). Extracts the MCCS version.
+        private static readonly string mccsVersionPattern = @"mccs_ver\((.*?)\)";
         private static readonly Regex vcp60ValuesRegex = new Regex(vcp60ValuesPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex mccsVersionRegex = new Regex(mccsVersionPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        
+        // Sources in MCCS v2.0 == v2.1, and both are a subset of 2.2, so we use a single array to cover them all.
+        // Note that the standards use one-based indexing, so we just add a dummy element at the start.
+        private static readonly string[] sourceNamesMccsV2 = {
+            "**undefined**",
+            "VGA 1",
+            "VGA 2",
+            "DVI 1",
+            "DVI 2",
+            "Composite 1",
+            "Composite 2",
+            "S-video 1",
+            "S-video 2",
+            "Tuner 1",
+            "Tuner 2",
+            "Tuner 3",
+            "Component 1",
+            "Component 2",
+            "Component 3",
+            "DisplayPort 1",
+            "DisplayPort 2",
+            "HDMI 1",
+            "HDMI 2"
+        };
+
+        // Note that MCCS v3.0 was not well adopted, so 2.2a has become the active standard.
+        // Note that the standards use one-based indexing, so we just add a dummy element at the start.
+        private static readonly string[] sourceNamesMccsV3 = {
+            "**undefined**",
+            "VGA 1",
+            "VGA 2",
+            "DVI 1",
+            "DVI 2",
+            "Composite 1",
+            "Composite 2",
+            "S-video 1",
+            "S-video 2",
+            "Tuner - Analog 1",
+            "Tuner - Analog 2",
+            "Tuner - Digital 1",
+            "Tuner - Digital 2",
+            "Component 1",
+            "Component 2",
+            "Component 3",
+            "**Unrecognized**",
+            "DisplayPort 1",
+            "DisplayPort 2"
+        };
 
         private static List<DisplayDDC.Physical_Monitor[]> physicalMonitors;
 
         private delegate bool EnumMonitorsDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData);
 
+        #endregion
         #endregion
 
         public static void Init()
@@ -59,21 +119,49 @@ namespace AutoKVM
             }
         }
 
-        public static List<int[]> GetMonitorSupportedSources()
+        /// <summary>
+        /// Returns a list of MonitorSources, one per monitor.
+        /// </summary>
+        public static List<MonitorSource[]> GetMonitorSupportedSources()
         {
-            List<int[]> sourcesList = new List<int[]>();
+            List<MonitorSource[]> sourcesList = new List<MonitorSource[]>();
 
             foreach (Physical_Monitor[] monitorArray in physicalMonitors)
             {
                 foreach (Physical_Monitor monitor in monitorArray)
                 {
-                    int[] sources = GetMonitorSupportedSources(monitor.hPhysicalMonitor);
+                    MonitorSource[] sources = GetMonitorSupportedSources(monitor.hPhysicalMonitor);
                     sourcesList.Add(sources);
                 }
             }
 
             return sourcesList;
         }
+
+        /// <summary>
+        /// Returns a list of monitor input source codes, one per monitor.
+        /// Values correspond to MonitorSource.code.
+        /// </summary>
+        public static List<int> GetMonitorActiveSources()
+        {
+            List<int> activeSources = new List<int>();
+
+            foreach (Physical_Monitor[] monitorArray in physicalMonitors)
+            {
+                foreach (Physical_Monitor monitor in monitorArray)
+                {
+                    IntPtr nullVal = IntPtr.Zero;
+                    int currentValue;
+                    int maxValue;
+                    GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, 0x60, ref nullVal, out currentValue, out maxValue);
+
+                    activeSources.Add(currentValue);
+                }
+            }
+
+            return activeSources;
+        }
+
         public static void CycleDisplaySources(int monitorIndex, int[] enabledSources)
         {
             if (enabledSources.Length == 0)
@@ -91,7 +179,7 @@ namespace AutoKVM
                         IntPtr nullVal = IntPtr.Zero;
                         int currentValue;
                         int maxValue;
-                        DisplayDDC.GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, 0x60, ref nullVal, out currentValue, out maxValue);
+                        GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, 0x60, ref nullVal, out currentValue, out maxValue);
 
                         int currentSourceIndex = Array.FindIndex(enabledSources, x => (x == currentValue)); // Can be -1, but we are ok with that.
 
@@ -101,7 +189,7 @@ namespace AutoKVM
                             newSourceIndex = 0;
                         }
 
-                        bool success = DisplayDDC.SetVCPFeature(monitor.hPhysicalMonitor, 0x60, enabledSources[newSourceIndex]);
+                        bool success = SetVCPFeature(monitor.hPhysicalMonitor, 0x60, enabledSources[newSourceIndex]);
 
                         return;
                     }
@@ -149,7 +237,7 @@ namespace AutoKVM
             return success;
         }
 
-        private static int[] GetMonitorSupportedSources(IntPtr hMonitor)
+        private static MonitorSource[] GetMonitorSupportedSources(IntPtr hMonitor)
         {
             int[] values = new int[0];
 
@@ -158,18 +246,46 @@ namespace AutoKVM
 
             StringBuilder capabilities = new StringBuilder((int)strSize);
             CapabilitiesRequestAndCapabilitiesReply(hMonitor, capabilities, strSize);
+            string capabilitiesStr = capabilities.ToString();
 
-            Match match = vcp60ValuesRegex.Match(capabilities.ToString());
+            // Parse source codes.
+            Match match = vcp60ValuesRegex.Match(capabilitiesStr);
             if (match.Success)
             {
-                string valuesStr = match.Groups[1].ToString().Trim();
+                string valuesStr = match.Groups[1].Value.Trim();
                 string[] valueArray = valuesStr.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
 
                 values = Array.ConvertAll(valueArray, s =>
                     int.Parse(s, System.Globalization.NumberStyles.HexNumber));
             }
 
-            return values;
+            // Parse MCCS version.
+            string[] sourceNames = new string[0];
+            match = mccsVersionRegex.Match(capabilitiesStr);
+            if (match.Success)
+            {
+                string versionStr = match.Groups[1].Value.Trim();
+                string[] versionArray = versionStr.Split(new char[]{'.'}, StringSplitOptions.RemoveEmptyEntries);
+                int majorVersion = int.Parse(versionArray[0]);
+
+                if (majorVersion < 3)
+                    sourceNames = sourceNamesMccsV2;
+                else
+                    sourceNames = sourceNamesMccsV3;
+            }
+
+            // Prepare output.
+            MonitorSource[] sources = new MonitorSource[values.Length];
+            for (int i = 0; i < values.Length; ++i)
+            {
+                sources[i].code = values[i];
+                if (0 <= values[i] && values[i] < sourceNames.Length)
+                    sources[i].name = sourceNames[values[i]];
+                else
+                    sources[i].name = "**Unrecognized**";
+            }
+
+            return sources;
         }
 
         #endregion

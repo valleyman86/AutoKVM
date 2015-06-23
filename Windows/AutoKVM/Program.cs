@@ -18,7 +18,11 @@ namespace AutoKVM
             
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new TaskTray());
+
+            using (new TaskTray()) // Dispose() call when done using cleans up the task tray icon, which is otherwise visible until mouse hover.
+            {
+                Application.Run();
+            }
 
             DisplayDDC.Cleanup();
             InterceptKeys.Cleanup();

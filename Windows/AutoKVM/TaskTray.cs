@@ -15,7 +15,7 @@ namespace AutoKVM
     public partial class TaskTray : Form
     {
         private List<ToolStripMenuItem> monitorMenus;
-        private List<int[]> supportedMonitorSources;
+        private List<DisplayDDC.MonitorSource[]> supportedMonitorSources;
 
         private System.Timers.Timer doublePressTimer;
 
@@ -40,6 +40,7 @@ namespace AutoKVM
         {
             monitorMenus = new List<ToolStripMenuItem>();
             supportedMonitorSources = DisplayDDC.GetMonitorSupportedSources();
+            List<int> activeMonitorSources = DisplayDDC.GetMonitorActiveSources();
 
             for (int monitorIndex = 0; monitorIndex < supportedMonitorSources.Count; ++monitorIndex)
             {
@@ -50,9 +51,13 @@ namespace AutoKVM
 
                 for (int sourceIndex = 0; sourceIndex < supportedMonitorSources[monitorIndex].Length; ++sourceIndex)
                 {
-                    ToolStripMenuItem source = new ToolStripMenuItem(String.Format("Source {0}", sourceIndex + 1));
-                    source.CheckOnClick = true;
-                    monitor.DropDownItems.Add(source);
+                    DisplayDDC.MonitorSource source = supportedMonitorSources[monitorIndex][sourceIndex];
+                    ToolStripMenuItem sourceMenuItem = new ToolStripMenuItem(String.Format("{0}", source.name));
+                    sourceMenuItem.CheckOnClick = true;
+                    if (source.code == activeMonitorSources[monitorIndex])
+                        sourceMenuItem.Checked = true;
+
+                    monitor.DropDownItems.Add(sourceMenuItem);
                 }
             }
         }
@@ -64,7 +69,7 @@ namespace AutoKVM
 
             if (System.Diagnostics.Debugger.IsAttached)
             {
-                doublePressTimer.Interval *= 10;
+                doublePressTimer.Interval *= 10; // Add some time, since the debugger can eat some time up.
             }
         }
 
@@ -108,7 +113,7 @@ namespace AutoKVM
                     ToolStripMenuItem sourceMenu = (ToolStripMenuItem)monitorMenus[monitorIndex].DropDownItems[sourceIndex];
                     if (sourceMenu.Checked)
                     {
-                        int source = supportedMonitorSources[monitorIndex][sourceIndex];
+                        int source = supportedMonitorSources[monitorIndex][sourceIndex].code;
                         enabledSources.Add(source);
                     }
                 }
