@@ -10,16 +10,19 @@ namespace AutoKVM
     {
         IntPtr handle;
 
+        public static ushort vendorID = 0x4b4;
+        public static ushort productID = 0x120d;
+
         public enum Devices {
-            Device3 = 0x01,
-            Device4 = 0x02,
-            Device1 = 0x04,
-            Device2 = 0x08
+            Device4 = 0x01,
+            Device3 = 0x02,
+            Device2 = 0x04,
+            Device1 = 0x08
         }
 
         public ShareCentralIO()
         {
-            handle = HIDAPI.HIDOpen(0x4b4, 0x120d, null);
+            handle = HIDAPI.HIDOpen(vendorID, productID, null);
             if(handle == null) {
                 Console.WriteLine("Unable to open USB device.\n");
                 return;

@@ -24,6 +24,7 @@ namespace AutoKVM
             InitializeComponent();
 
             AddMonitorsAndSources();
+            AddUSBSwitches();
             InitTimer();
             InterceptKeys.RegisterCallback(GlobalKeydownCallback);
         }
@@ -146,6 +147,52 @@ namespace AutoKVM
             {
                 e.Cancel = true;
                 ((ToolStripDropDownMenu)sender).Invalidate();
+            }
+        }
+
+        private void AddUSBSwitches()
+        {
+            Tuple<ushort, ushort>[] supportedDevices = new Tuple<ushort, ushort>[1] { new Tuple<ushort, ushort>(ShareCentralIO.vendorID, ShareCentralIO.productID) };
+
+            ToolStripMenuItem usbSwitchesMenuItem = null;
+
+            List<HIDAPI.HIDDeviceInfo> devices = HIDAPI.HIDEnumerate(0, 0);
+            foreach (HIDAPI.HIDDeviceInfo device in devices) {
+                if (Array.Exists(supportedDevices, supportedDevice => supportedDevice.Item1 == device.vendor_id && supportedDevice.Item2 == device.product_id)) {
+                    if (usbSwitchesMenuItem == null) {
+                        usbSwitchesMenuItem = new ToolStripMenuItem(String.Format("USB Switches"));
+                        contextMenuStrip1.Items.Insert(contextMenuStrip1.Items.Count - 1, usbSwitchesMenuItem);
+                    }
+
+                    ToolStripMenuItem usbSwitchMenuItem = new ToolStripMenuItem(String.Format("{0}", device.product_string));
+                    usbSwitchMenuItem.CheckOnClick = true;
+                    usbSwitchMenuItem.DropDown.Closing += new ToolStripDropDownClosingEventHandler(MonitorDropdownClosing);
+                    usbSwitchesMenuItem.DropDownItems.Add(usbSwitchMenuItem);
+
+                    ShareCentralIO usbSwitch = new ShareCentralIO();
+                    ShareCentralIO.Devices status = usbSwitch.GetStatusOfDevices();
+                    bool device1Status = (status & ShareCentralIO.Devices.Device1) == ShareCentralIO.Devices.Device1;
+                    bool device2Status = (status & ShareCentralIO.Devices.Device2) == ShareCentralIO.Devices.Device2;
+                    bool device3Status = (status & ShareCentralIO.Devices.Device3) == ShareCentralIO.Devices.Device3;
+                    bool device4Status = (status & ShareCentralIO.Devices.Device4) == ShareCentralIO.Devices.Device4;
+
+                    int breakTest = 0;
+                    //ToolStripMenuItem usbSwitch = new ToolStripMenuItem(String.Format("Monitor {0}", device.product_string));
+                    //usbSwitch.DropDown.Closing += new ToolStripDropDownClosingEventHandler(MonitorDropdownClosing);
+                    //monitorMenus.Add(usbSwitch);
+                    //contextMenuStrip1.Items.Insert(contextMenuStrip1.Items.Count - 1, monitor);
+
+                    //for (int sourceIndex = 0; sourceIndex < supportedMonitorSources[monitorIndex].Length; ++sourceIndex) {
+                    //    DisplayDDC.MonitorSource source = supportedMonitorSources[monitorIndex][sourceIndex];
+                    //    ToolStripMenuItem sourceMenuItem = new ToolStripMenuItem(String.Format("{0}", source.name));
+                    //    sourceMenuItem.CheckOnClick = true;
+                    //    if (source.code == activeMonitorSources[monitorIndex])
+                    //        sourceMenuItem.Checked = true;
+
+                    //    monitor.DropDownItems.Add(sourceMenuItem);
+                    //}
+                }
+
             }
         }
     }

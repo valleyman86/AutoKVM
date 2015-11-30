@@ -31,6 +31,30 @@ namespace AutoKVM
             public OVERLAPPED ol;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public class HIDDeviceInfo {
+            [MarshalAs(UnmanagedType.LPStr)]
+			public string path; // Platform-specific device path
+			public ushort vendor_id; // Device Vendor ID
+			public ushort product_id; // Device Product ID
+            [MarshalAs(UnmanagedType.LPWStr)]
+			string serial_number;
+			public ushort release_number; //  Device Release Number in binary-coded decimal, also known as Device Version Number
+            [MarshalAs(UnmanagedType.LPWStr)]
+			public string manufacturer_string;
+            [MarshalAs(UnmanagedType.LPWStr)]
+			public string product_string;
+			public ushort usage_page; // Usage Page for this Device/Interface (Windows/Mac only).
+			public ushort usage; //  Usage for this Device/Interface (Windows/Mac only).
+			/** The USB interface which this logical device
+			    represents. Valid on both Linux implementations
+			    in all cases, and valid on the Windows implementation
+			    only if the device contains more than one interface. */
+            public int interface_number;
+
+            public IntPtr next; // Pointer to the next device 
+		};
+
         [DllImport(@"hidapi.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr hid_open(ushort vendor_id, ushort product_id, string serial_number);
 
@@ -51,6 +75,25 @@ namespace AutoKVM
 
         [DllImport(@"hidapi.dll", EntryPoint = @"hid_exit", CallingConvention = CallingConvention.Cdecl)]
         public static extern void HIDExit();
+
+        [DllImport(@"hidapi.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr hid_enumerate(ushort vendor_id, ushort product_id);
+
+        public static List<HIDDeviceInfo> HIDEnumerate(ushort vendor_id, ushort product_id)
+        {
+            List<HIDDeviceInfo> list = new List<HIDDeviceInfo>();
+
+            IntPtr pDeviceInfo = hid_enumerate(vendor_id, product_id);
+
+            while (pDeviceInfo != IntPtr.Zero) {
+                HIDDeviceInfo deviceInfo = (HIDDeviceInfo)Marshal.PtrToStructure(pDeviceInfo, typeof(HIDDeviceInfo));
+                list.Add(deviceInfo);
+
+                pDeviceInfo = deviceInfo.next;
+            }
+
+            return list;
+        }
 
         [DllImport(@"hidapi.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int hid_write(IntPtr dev, byte[] data, uint length);

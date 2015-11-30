@@ -60,4 +60,5 @@ Commands
 		02 5c 02 (both bottom)
 
 
-
+PC 1 - White (Enabled when lights are at cable side)
+PC 2 - Orange (Enabled when lights are at opposite cable side)
