@@ -1,5 +1,5 @@
-/Windows/AutoKVM/obj
-/Windows/AutoKVM/bin
 .DS_Store
+/obj
+/bin
 *.suo
 *.user
