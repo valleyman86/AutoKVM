@@ -1,6 +1,6 @@
 ﻿namespace AutoKVM
 {
-    partial class Form1
+    partial class TaskTray
     {
         /// <summary>
         /// Required designer variable.
@@ -28,12 +28,11 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(TaskTray));
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.switchAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.switchDisplaysToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.switchKeyboardMouseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -48,40 +47,32 @@
             // contextMenuStrip1
             // 
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.switchAllToolStripMenuItem,
             this.switchDisplaysToolStripMenuItem,
-            this.switchKeyboardMouseToolStripMenuItem});
+            this.exitToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(204, 92);
-            // 
-            // switchAllToolStripMenuItem
-            // 
-            this.switchAllToolStripMenuItem.Name = "switchAllToolStripMenuItem";
-            this.switchAllToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
-            this.switchAllToolStripMenuItem.Text = "Switch All";
-            this.switchAllToolStripMenuItem.Click += new System.EventHandler(this.switchAllToolStripMenuItem_Click);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(192, 70);
             // 
             // switchDisplaysToolStripMenuItem
             // 
             this.switchDisplaysToolStripMenuItem.Name = "switchDisplaysToolStripMenuItem";
-            this.switchDisplaysToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
-            this.switchDisplaysToolStripMenuItem.Text = "Switch Displays";
+            this.switchDisplaysToolStripMenuItem.Size = new System.Drawing.Size(191, 22);
+            this.switchDisplaysToolStripMenuItem.Text = "Toggle Display Source";
             this.switchDisplaysToolStripMenuItem.Click += new System.EventHandler(this.switchDisplaysToolStripMenuItem_Click);
             // 
-            // switchKeyboardMouseToolStripMenuItem
+            // exitToolStripMenuItem
             // 
-            this.switchKeyboardMouseToolStripMenuItem.Name = "switchKeyboardMouseToolStripMenuItem";
-            this.switchKeyboardMouseToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
-            this.switchKeyboardMouseToolStripMenuItem.Text = "Switch Keyboard/Mouse";
-            this.switchKeyboardMouseToolStripMenuItem.Click += new System.EventHandler(this.switchKeyboardMouseToolStripMenuItem_Click);
+            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(191, 22);
+            this.exitToolStripMenuItem.Text = "Exit";
+            this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
-            // Form1
+            // TaskTray
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(284, 261);
-            this.Name = "Form1";
-            this.Text = "Form1";
+            this.Name = "TaskTray";
+            this.Text = "TaskTray";
             this.contextMenuStrip1.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -91,9 +82,8 @@
 
         private System.Windows.Forms.NotifyIcon notifyIcon1;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
-        private System.Windows.Forms.ToolStripMenuItem switchAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem switchDisplaysToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem switchKeyboardMouseToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
 
     }
 }

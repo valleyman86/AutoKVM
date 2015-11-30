@@ -27,7 +27,55 @@ namespace AutoKVM
             public string szPhysicalMonitorDescription;
         }
 
+        public enum MonitorSource: int
+        {
+            dvi_1 = 3,
+            vga = 1,
+            hdmi = 17,
+            composite = 5
+        };
+
         public delegate bool EnumMonitorsDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr dwData);
+
+        public static void ToggleDisplaySources(MonitorSource source1, MonitorSource source2)
+        {
+            EnumMonitorsDelegate enumMonitorsDelegate = (IntPtr hMonitor, IntPtr hdcMonitor, ref DisplayDDC.Rect lprcMonitor, IntPtr dwData) => {
+                return EnumMonitors(hMonitor, hdcMonitor, ref lprcMonitor, dwData, (int)source1, (int)source2);
+            };
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, enumMonitorsDelegate, IntPtr.Zero);
+        }
+
+        private static bool EnumMonitors(IntPtr hMonitor, IntPtr hdcMonitor, ref DisplayDDC.Rect lprcMonitor, IntPtr dwData, int sourceCode1, int sourceCode2)
+        {
+            if (hMonitor.ToInt32() != 65537)
+            {
+                return true;
+            }
+
+            int physicalMonitorCount = 0;
+            DisplayDDC.GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitorCount);
+
+            DisplayDDC.Physical_Monitor[] physicalMonitors;
+            DisplayDDC.GetPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitors);
+
+            for (int i = 0; i < physicalMonitors.Length; ++i)
+            {
+                IntPtr nullVal = IntPtr.Zero;
+                Int32 currentValue;
+                Int32 maxValue;
+                DisplayDDC.GetVCPFeatureAndVCPFeatureReply(physicalMonitors[i].hPhysicalMonitor, 0x60, ref nullVal, out currentValue, out maxValue);
+
+                int newSource = (currentValue == sourceCode1 ? sourceCode2 : sourceCode1);
+                bool success = DisplayDDC.SetVCPFeature(physicalMonitors[i].hPhysicalMonitor, 0x60, newSource);
+            }
+
+            IntPtr physicalMonitorsPtr = Marshal.AllocHGlobal(Marshal.SizeOf(physicalMonitors[0]) * physicalMonitors.Length);
+            Marshal.StructureToPtr(physicalMonitors[0], physicalMonitorsPtr, false);
+            DisplayDDC.DestroyPhysicalMonitors(physicalMonitors.Length, physicalMonitorsPtr);
+            Marshal.FreeHGlobal(physicalMonitorsPtr);
+
+            return true;
+        }
 
         [DllImport("user32.dll")]
         public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, EnumMonitorsDelegate lpfnEnum, IntPtr dwData);
@@ -65,5 +113,8 @@ namespace AutoKVM
 
         [DllImport("Dxva2.dll")]
         public static extern bool  SetVCPFeature(IntPtr hMonitor, byte bVCPCode,  int dwNewValue);
+
+        [DllImport("Dxva2.dll")]
+        public static extern bool GetVCPFeatureAndVCPFeatureReply(IntPtr hMonitor, byte bVCPCode, ref IntPtr makeNull, out Int32 currentValue, out Int32 maxValue);
     }
 }

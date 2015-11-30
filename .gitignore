@@ -1,2 +1,5 @@
 /Windows/AutoKVM/obj
+/Windows/AutoKVM/bin
 .DS_Store
+*.suo
+*.user

@@ -13,9 +13,11 @@ namespace AutoKVM
         [STAThread]
         static void Main()
         {
+            InterceptKeys.Init();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            Application.Run(new TaskTray());
+            InterceptKeys.Cleanup();
         }
     }
 }
