@@ -21,6 +21,11 @@ namespace AutoKVM
 
         private const int PHYSICAL_MONITOR_DESCRIPTION_SIZE = 128;
 
+        private enum VCPCodes : byte
+        {
+            InputSource = 0x60
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct Rect
         {
@@ -153,7 +158,7 @@ namespace AutoKVM
                     IntPtr nullVal = IntPtr.Zero;
                     int currentValue;
                     int maxValue;
-                    GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, 0x60, ref nullVal, out currentValue, out maxValue);
+                    GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, (byte)VCPCodes.InputSource, ref nullVal, out currentValue, out maxValue);
 
                     activeSources.Add(currentValue);
                 }
@@ -179,7 +184,7 @@ namespace AutoKVM
                         IntPtr nullVal = IntPtr.Zero;
                         int currentValue;
                         int maxValue;
-                        GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, 0x60, ref nullVal, out currentValue, out maxValue);
+                        GetVCPFeatureAndVCPFeatureReply(monitor.hPhysicalMonitor, (byte)VCPCodes.InputSource, ref nullVal, out currentValue, out maxValue);
 
                         int currentSourceIndex = Array.FindIndex(enabledSources, x => (x == currentValue)); // Can be -1, but we are ok with that.
 
@@ -189,7 +194,7 @@ namespace AutoKVM
                             newSourceIndex = 0;
                         }
 
-                        bool success = SetVCPFeature(monitor.hPhysicalMonitor, 0x60, enabledSources[newSourceIndex]);
+                        bool success = SetVCPFeature(monitor.hPhysicalMonitor, (byte)VCPCodes.InputSource, enabledSources[newSourceIndex]);
 
                         return;
                     }
@@ -228,7 +233,7 @@ namespace AutoKVM
             pPhysicalMonitorArray = new Physical_Monitor[physicalMonitorCount];
             for (int i = 0; i < pPhysicalMonitorArray.Length; ++i)
             {
-                pPhysicalMonitorArray[i] = (Physical_Monitor)Marshal.PtrToStructure(p, typeof(Physical_Monitor));
+                pPhysicalMonitorArray[i] = (Physical_Monitor)Marshal.PtrToStructure(pointer, typeof(Physical_Monitor));
                 pointer += Marshal.SizeOf(typeof(Physical_Monitor));
             }
 
