@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -117,10 +117,18 @@ namespace AutoKVM
         {
             foreach (Physical_Monitor[] monitors in physicalMonitors)
             {
-                IntPtr monitorsPtr = Marshal.AllocHGlobal(Marshal.SizeOf(monitors[0]) * monitors.Length);
-                Marshal.StructureToPtr(monitors[0], monitorsPtr, false);
-                DisplayDDC.DestroyPhysicalMonitors((uint)monitors.Length, monitorsPtr);
-                Marshal.FreeHGlobal(monitorsPtr);
+                int sizeofPhysicalMonitor = Marshal.SizeOf(typeof(Physical_Monitor));
+                IntPtr pUnmanagedMonitorArray = Marshal.AllocHGlobal(sizeofPhysicalMonitor * monitors.Length);
+
+                IntPtr pUnmanagedMonitorElement = new IntPtr(pUnmanagedMonitorArray.ToInt64());
+                for (int i = 0; i < monitors.Length; ++i)
+                {
+                    Marshal.StructureToPtr(monitors[i], pUnmanagedMonitorElement, false);
+                    pUnmanagedMonitorElement += sizeofPhysicalMonitor;
+                }
+
+                DisplayDDC.DestroyPhysicalMonitors((uint)monitors.Length, pUnmanagedMonitorArray);
+                Marshal.FreeHGlobal(pUnmanagedMonitorArray);
             }
         }
 
@@ -212,34 +220,43 @@ namespace AutoKVM
             DisplayDDC.GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitorCount);
 
             DisplayDDC.Physical_Monitor[] physicalMonitors;
-            DisplayDDC.GetPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitors);
+            bool success = DisplayDDC.GetPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitors);
+            if (success)
+            {
+                DisplayDDC.physicalMonitors.Add(physicalMonitors);
+            }
 
-            DisplayDDC.physicalMonitors.Add(physicalMonitors);
-
-            return true;
+            return true; // Return true to continue enumeration.
         }
 
-        private static bool GetPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, out Physical_Monitor[] pPhysicalMonitorArray)
+        private static bool GetPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, out Physical_Monitor[] physicalMonitors)
         {
+            // Allocate unmanaged memory.
             uint physicalMonitorCount = 0;
             GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out physicalMonitorCount);
 
-            Physical_Monitor[] monitors = new Physical_Monitor[physicalMonitorCount];
-            IntPtr p = Marshal.AllocHGlobal(Marshal.SizeOf(monitors[0]) * monitors.Length);
+            int sizeofPhysicalMonitor = Marshal.SizeOf(typeof(Physical_Monitor));
+            IntPtr pUnmanagedMonitorArray = Marshal.AllocHGlobal(sizeofPhysicalMonitor * (int)physicalMonitorCount);
 
-            bool success = GetPhysicalMonitorsFromHMONITOR(hMonitor, physicalMonitorCount, p);
+            // Fetch data.
+            bool fetchSuccess = GetPhysicalMonitorsFromHMONITOR(hMonitor, physicalMonitorCount, pUnmanagedMonitorArray);
 
-            IntPtr pointer = new IntPtr(p.ToInt64());
-            pPhysicalMonitorArray = new Physical_Monitor[physicalMonitorCount];
-            for (int i = 0; i < pPhysicalMonitorArray.Length; ++i)
+            // Copy data.
+            physicalMonitors = new Physical_Monitor[physicalMonitorCount];
+            if (fetchSuccess)
             {
-                pPhysicalMonitorArray[i] = (Physical_Monitor)Marshal.PtrToStructure(pointer, typeof(Physical_Monitor));
-                pointer += Marshal.SizeOf(typeof(Physical_Monitor));
+                IntPtr pUnmanagedMonitorElement = new IntPtr(pUnmanagedMonitorArray.ToInt64());
+                for (int i = 0; i < physicalMonitors.Length; ++i)
+                {
+                    physicalMonitors[i] = (Physical_Monitor)Marshal.PtrToStructure(pUnmanagedMonitorElement, typeof(Physical_Monitor));
+                    pUnmanagedMonitorElement += sizeofPhysicalMonitor;
+                }
             }
 
-            Marshal.FreeHGlobal(p);
+            // Free unmanaged memory.
+            Marshal.FreeHGlobal(pUnmanagedMonitorArray);
 
-            return success;
+            return fetchSuccess;
         }
 
         private static MonitorSource[] GetMonitorSupportedSources(IntPtr hMonitor)
