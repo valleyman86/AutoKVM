@@ -17,6 +17,8 @@ namespace AutoKVM
         private List<ToolStripMenuItem> monitorMenus;
         private List<DisplayDDC.MonitorSource[]> supportedMonitorSources;
 
+        private Dictionary<IUSBDevice, List<ToolStripMenuItem>> usbDeviceMenus;
+
         private System.Timers.Timer doublePressTimer;
 
         public TaskTray()
@@ -82,7 +84,7 @@ namespace AutoKVM
                 //    Application.Exit();
                 //    break;
 
-                case Keys.Scroll:
+                case Keys.Pause:
                     HandleScrolllock();
                     break;
 
@@ -97,6 +99,7 @@ namespace AutoKVM
             {
                 doublePressTimer.Stop();
                 CycleDisplays();
+                CycleUSBDevicePorts();
             }
             else
             {
@@ -134,6 +137,7 @@ namespace AutoKVM
         private void switchDisplaysToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CycleDisplays();
+            CycleUSBDevicePorts();
         }
         
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -152,47 +156,68 @@ namespace AutoKVM
 
         private void AddUSBSwitches()
         {
-            Tuple<ushort, ushort>[] supportedDevices = new Tuple<ushort, ushort>[1] { new Tuple<ushort, ushort>(ShareCentralIO.vendorID, ShareCentralIO.productID) };
+            usbDeviceMenus = new Dictionary<IUSBDevice, List<ToolStripMenuItem>>();
+
+            Type[] supportedDevices = new Type[1] { typeof(ShareCentralIO) };
 
             ToolStripMenuItem usbSwitchesMenuItem = null;
 
             List<HIDAPI.HIDDeviceInfo> devices = HIDAPI.HIDEnumerate(0, 0);
             foreach (HIDAPI.HIDDeviceInfo device in devices) {
-                if (Array.Exists(supportedDevices, supportedDevice => supportedDevice.Item1 == device.vendor_id && supportedDevice.Item2 == device.product_id)) {
+                int index = Array.FindIndex(supportedDevices, supportedDevice => {
+                    DeviceInfoAttribute deviceInfoAttribute = (DeviceInfoAttribute)Attribute.GetCustomAttribute(supportedDevice, typeof(DeviceInfoAttribute));
+                    return deviceInfoAttribute.vendorID == device.vendor_id && deviceInfoAttribute.productID == device.product_id;
+                });
+                
+                if (index > -1) {
+                    try {
+                        IUSBDevice usbSwitch = (IUSBDevice)Activator.CreateInstance(supportedDevices[index]);
+                    
                     if (usbSwitchesMenuItem == null) {
                         usbSwitchesMenuItem = new ToolStripMenuItem(String.Format("USB Switches"));
                         contextMenuStrip1.Items.Insert(contextMenuStrip1.Items.Count - 1, usbSwitchesMenuItem);
                     }
 
                     ToolStripMenuItem usbSwitchMenuItem = new ToolStripMenuItem(String.Format("{0}", device.product_string));
-                    usbSwitchMenuItem.CheckOnClick = true;
                     usbSwitchMenuItem.DropDown.Closing += new ToolStripDropDownClosingEventHandler(MonitorDropdownClosing);
                     usbSwitchesMenuItem.DropDownItems.Add(usbSwitchMenuItem);
 
-                    ShareCentralIO usbSwitch = new ShareCentralIO();
-                    ShareCentralIO.Devices status = usbSwitch.GetStatusOfDevices();
-                    bool device1Status = (status & ShareCentralIO.Devices.Device1) == ShareCentralIO.Devices.Device1;
-                    bool device2Status = (status & ShareCentralIO.Devices.Device2) == ShareCentralIO.Devices.Device2;
-                    bool device3Status = (status & ShareCentralIO.Devices.Device3) == ShareCentralIO.Devices.Device3;
-                    bool device4Status = (status & ShareCentralIO.Devices.Device4) == ShareCentralIO.Devices.Device4;
+                    
+                    List<ToolStripMenuItem> portToolStrips = new List<ToolStripMenuItem>();
+                    for (int i = 0; i < usbSwitch.numberOfPorts; ++i) {
+                        ToolStripMenuItem usbSwitchPortMenuItem = new ToolStripMenuItem(String.Format("Port {0}", i));
+                        usbSwitchPortMenuItem.CheckOnClick = true;
+                        usbSwitchMenuItem.DropDownItems.Add(usbSwitchPortMenuItem);
+                        portToolStrips.Add(usbSwitchPortMenuItem);
+                    }
 
-                    int breakTest = 0;
-                    //ToolStripMenuItem usbSwitch = new ToolStripMenuItem(String.Format("Monitor {0}", device.product_string));
-                    //usbSwitch.DropDown.Closing += new ToolStripDropDownClosingEventHandler(MonitorDropdownClosing);
-                    //monitorMenus.Add(usbSwitch);
-                    //contextMenuStrip1.Items.Insert(contextMenuStrip1.Items.Count - 1, monitor);
+                    usbDeviceMenus.Add(usbSwitch, portToolStrips);
 
-                    //for (int sourceIndex = 0; sourceIndex < supportedMonitorSources[monitorIndex].Length; ++sourceIndex) {
-                    //    DisplayDDC.MonitorSource source = supportedMonitorSources[monitorIndex][sourceIndex];
-                    //    ToolStripMenuItem sourceMenuItem = new ToolStripMenuItem(String.Format("{0}", source.name));
-                    //    sourceMenuItem.CheckOnClick = true;
-                    //    if (source.code == activeMonitorSources[monitorIndex])
-                    //        sourceMenuItem.Checked = true;
+                    //ShareCentralIO.Devices status = usbSwitch.GetStatusOfDevices();
+                    //bool device1Status = (status & ShareCentralIO.Devices.Device1) == ShareCentralIO.Devices.Device1;
+                    //bool device2Status = (status & ShareCentralIO.Devices.Device2) == ShareCentralIO.Devices.Device2;
+                    //bool device3Status = (status & ShareCentralIO.Devices.Device3) == ShareCentralIO.Devices.Device3;
+                    //bool device4Status = (status & ShareCentralIO.Devices.Device4) == ShareCentralIO.Devices.Device4;
 
-                    //    monitor.DropDownItems.Add(sourceMenuItem);
-                    //}
+                    } catch (FailedToOpenDeviceException e) {
+                        Console.WriteLine("Failed to open USB Device. {0}", e);
+                    }
                 }
+            }
+        }
 
+        private void CycleUSBDevicePorts()
+        {
+            foreach (KeyValuePair<IUSBDevice, List<ToolStripMenuItem>> usbDevices in usbDeviceMenus) {
+                List<int> enabledPorts = new List<int>();
+                for (int portIndex = 0; portIndex < usbDevices.Key.numberOfPorts; ++portIndex) {
+                    ToolStripMenuItem portMenu = (ToolStripMenuItem)usbDevices.Value[portIndex];
+                    if (portMenu.Checked) {
+                        enabledPorts.Add(portIndex);
+                    }
+
+                    usbDevices.Key.CyclePorts(enabledPorts.ToArray());
+                }
             }
         }
     }

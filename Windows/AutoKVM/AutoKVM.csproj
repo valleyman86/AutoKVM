@@ -47,9 +47,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FailedToOpenDeviceException.cs" />
+    <Compile Include="DeviceInfoAttribute.cs" />
     <Compile Include="DisplayDDC.cs" />
     <None Include="Form1.cs" />
     <Compile Include="HIDAPI.cs" />
+    <Compile Include="IUSBDevice.cs" />
     <Compile Include="ShareCentralIO.cs" />
     <Compile Include="TaskTray.cs">
       <SubType>Form</SubType>
