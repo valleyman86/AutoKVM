@@ -29,8 +29,8 @@ namespace AutoKVM
         public enum Devices {
             Device4 = 0x01,
             Device3 = 0x02,
-            Device2 = 0x04,
-            Device1 = 0x08
+            Device1 = 0x04,
+            Device2 = 0x08
         }
 
         public ShareCentralIO()
@@ -90,19 +90,22 @@ namespace AutoKVM
             }
         }
 
+        // A port is generally a PC. All sharecentral switches only support 2 PCs currently.
         public void CyclePorts(int[] enabledPorts)
         {
-            ShareCentralIO.Devices status = GetStatusOfDevices();
-            bool device1Status = (status & ShareCentralIO.Devices.Device1) == ShareCentralIO.Devices.Device1;
-            bool device2Status = (status & ShareCentralIO.Devices.Device2) == ShareCentralIO.Devices.Device2;
+            if (enabledPorts.Length > 0) {
+                int port0 = 0;
+                int port1 = 1;
+                ShareCentralIO.Devices status = GetStatusOfDevices();
+                bool device1Status = (status & ShareCentralIO.Devices.Device1) == ShareCentralIO.Devices.Device1;
+                bool device2Status = (status & ShareCentralIO.Devices.Device2) == ShareCentralIO.Devices.Device2;
 
-            if (device1Status == device2Status) {
-                SwitchDevices(ShareCentralIO.Devices.Device1);
-                SwitchDevices(ShareCentralIO.Devices.Device2);
-            } else if (device1Status == true && device2Status == false) {
-                SwitchDevices(ShareCentralIO.Devices.Device1);
-            } else if (device1Status == false && device2Status == true) {
-                SwitchDevices(ShareCentralIO.Devices.Device2);
+                if (enabledPorts.Contains(port0)) {
+                    SwitchDevices(ShareCentralIO.Devices.Device1);
+                }
+                if (enabledPorts.Contains(port1)) {
+                    SwitchDevices(ShareCentralIO.Devices.Device2);
+                }
             }
         }
 

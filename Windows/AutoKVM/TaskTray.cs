@@ -187,6 +187,7 @@ namespace AutoKVM
                     for (int i = 0; i < usbSwitch.numberOfPorts; ++i) {
                         ToolStripMenuItem usbSwitchPortMenuItem = new ToolStripMenuItem(String.Format("Port {0}", i));
                         usbSwitchPortMenuItem.CheckOnClick = true;
+                        usbSwitchPortMenuItem.Checked = true;
                         usbSwitchMenuItem.DropDownItems.Add(usbSwitchPortMenuItem);
                         portToolStrips.Add(usbSwitchPortMenuItem);
                     }
